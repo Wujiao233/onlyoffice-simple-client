@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OnlyOffice Simple Client</title>
+    <link rel="stylesheet" href="/static/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/BootSideMenu.css">
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            border: 0;
+            overflow: hidden;
+            height: 100%;
+        }
+
+        #drag {
+            height: calc(100% - 1.4rem);
+            margin: 10px;
+            border-radius: 10px;
+            background-color: #f8f8f8;
+            border: 1px dashed #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: #777;
+            user-select: none;
+        }
+
+        svg {
+            transform: rotate(-90deg);
+        }
+
+        div {
+            text-align: center;
+        }
+
+        #sideList span {
+            line-height: 46px;
+        }
+
+        .list-group-item {
+            padding: 3px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .menu-wrapper{
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="sideList">
+        <h6 style="margin-top: 8px">文件列表</h2>
+            <div style="height: calc(100% - 32px);overflow: scroll;padding-bottom: 10px;">
+                <ul class="list-group list-group-flush" style="text-align: left;" id="fileList">
+
+                </ul>
+            </div>
+
+    </div>
+    <div id="workbench"></div>
+    <div id="drag">
+        <div>
+            <svg width="70px" height="70px" class="svg" id="progress_bar" style="">
+                <circle r="25" cy="35" cx="35" stroke-width="12" stroke="#EAEFF4" stroke-linejoin="round"
+                    stroke-linecap="round" fill="none"></circle>
+                <circle id="progress_circle" class="progress" r="25" cy="35" cx="35" stroke-width="12" stroke="#777777"
+                    stroke-linejoin="round" stroke-linecap="round" fill="none" stroke-dashoffset="0px"
+                    stroke-dasharray="158px" style="stroke-dashoffset:158px"></circle>
+            </svg>
+            <div id="drag_text">Drag&Drop to Upload<br>拖动到此处上传</div>
+        </div>
+
+    </div>
+    <script type="text/javascript" src="/static/axios.min.js"></script>
+    <script type="text/javascript" src="/static/jquery-3.6.0.min.js"></script>
+    <script type="text/javascript" src="/static/bootstrap.bundle.min.js"></script>
+    <script type="text/javascript" src="/static/BootSideMenu.js"></script>
+    <script type="text/javascript" src="{{.documentserver}}/web-apps/apps/api/documents/api.js"></script>
+    <script>
+        let workbench = document.getElementById('workbench');
+        let dragDivDom = document.getElementById('drag');
+        let progress_bar = document.getElementById('progress_bar');
+        let drag_text = document.getElementById('drag_text');
+        let progress_circle = document.getElementById('progress_circle');
+        var onUpload = false;
+        var isOnOffice = false;
+
+        workbench.hidden = true;
+        progress_bar.style.display = 'none';
+        dragDivDom.addEventListener('drop', (ev) => {
+            // 阻止进行拖拽时浏览器的默认行为
+            ev.preventDefault();
+            if (onUpload) return;
+            onUpload = true;
+            // 上传文件
+            let data = new FormData();
+            data.append('file', ev.dataTransfer.files[0]);
+            progress_bar.style.display = '';
+            drag_text.innerText = "Uploading...";
+
+            axios.post('/upload', data, {
+                onUploadProgress: progress => {
+                    console.log(progress);
+                    drag_text.innerText = "Uploading...\n" + Number(progress.loaded / 1024 / 1024).toFixed(2) + "MB/" + Number(progress.total / 1024 / 1024).toFixed(2) + "MB";
+                    progress_circle.style['stroke-dashoffset'] = (158 - (progress.loaded / progress.total) * 158) + 'px'
+                }
+            })
+                .then(resp => {
+                    var j = resp.data;
+                    if (j['code'] === 0) {
+                        // Success
+                        let fileName = j['data']
+                        openFile(fileName);
+                    }
+                })
+            return;
+        })
+        dragDivDom.addEventListener('dragover', (ev) => {
+            // 阻止进行拖拽时浏览器的默认行为
+            ev.preventDefault();
+            drag.style.borderColor = 'rgb(0, 156, 255)'
+        })
+        dragDivDom.addEventListener('dragend', (ev) => {
+            // 阻止进行拖拽时浏览器的默认行为
+            ev.preventDefault();
+            drag.style.borderColor = '#ddd'
+        })
+        $('#sideList').BootSideMenu({
+            side: "left",
+            remember: false,
+            autoClose: true,
+            pushBody: false,
+            width: "20%",
+            icons: { left: 'bi bi-arrow-left-short', right: 'bi bi-arrow-right-short', down: 'bi bi-arrow-down-short' }
+        });
+
+    </script>
+    <script>
+        function loadOffice(config) {
+            isOnOffice = true;
+            var obj = JSON.parse(config.config);
+            obj['token'] = config.secret;
+            obj['documentType'] = config.documentType;
+            console.log(obj);
+            var docEditor = new DocsAPI.DocEditor("workbench", obj);
+        }
+        function openFile(fileName) {
+            $('#sideList').data("BootSideMenu").close();
+            if (isOnOffice) {
+                $('iframe').remove();
+                $('body').append('<div id="workbench"></div>');
+            }
+            axios.get("/genConfig?file=" + fileName)
+                .then(resp => {
+                    var j = resp.data;
+                    console.log(j)
+                    if (j['code'] === 0) {
+                        //Success
+                        workbench.hidden = false;
+                        dragDivDom.style.display = "none";
+                        loadOffice(j['data'])
+                    }
+                })
+        }
+        axios.get("/fileList").then(resp => {
+            var data = resp.data;
+            if (data.code === 0) {
+                var html = "";
+                for (var i in data.data) {
+                    var version = data.data[i]
+                    for (var j in version) {
+                        html += `<li class="list-group-item" onclick="openFile('${version[j]['OriginName']}')" onclick>${i}#${version[j]['UpdateTime']}</li>`
+                    }
+                }
+                $('#fileList').html(html);
+            }
+        })
+    </script>
+
+</body>
+
+</html>

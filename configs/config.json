@@ -1,0 +1,11 @@
+{
+  "Server": {
+    "host": "127.0.0.1",
+    "server_port": "8098",
+    "url":"https://<path-to-this-service>:8098"
+  },
+  "Onlyoffice":{
+    "Secret":"you-jwt-secret",
+    "Host":"https://<path-to-onlyoffice-documentserver>:80"
+  }
+}
