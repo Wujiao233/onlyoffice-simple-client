@@ -93,6 +93,30 @@ func generateFileName(originFileName string) (string, error) {
 	return newFileName, nil
 }
 
+func Del(c *gin.Context) {
+	var postReq map[string]interface{}
+
+	if err := c.ShouldBind(&postReq); err != nil {
+		resp.Error(c, errors.New("err"))
+		return
+	}
+
+	fileName, ok := postReq["file"]
+	if !ok {
+		resp.Error(c, errors.New("empty filename"))
+		return
+	}
+	fileNameStr := strings.Split(fileName.(string), "/")[0]
+
+	if err := os.Remove("./data/" + fileNameStr); err == nil {
+		RefreshLocalFileList()
+		resp.OK(c, "ok")
+		return
+	} else {
+		resp.Error(c, err)
+	}
+}
+
 func Upload(c *gin.Context) {
 	file, err := c.FormFile("file")
 	if err != nil {

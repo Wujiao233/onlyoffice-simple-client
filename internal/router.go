@@ -20,6 +20,7 @@ func InitRouter() *gin.Engine {
 
 	router.POST("/callback", apis.Callback)
 	router.POST("/upload", apis.Upload)
+	router.POST("/del", apis.Del)
 	router.GET("/", apis.Index)
 	router.GET("/genConfig", apis.GenConfig)
 

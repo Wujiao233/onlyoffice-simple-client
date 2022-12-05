@@ -45,14 +45,36 @@
             line-height: 46px;
         }
 
+        #sideList .badge {
+            line-height: 1;
+        }
+
         .list-group-item {
             padding: 3px;
             font-size: 12px;
             cursor: pointer;
+            text-align: left;
         }
 
-        .menu-wrapper{
+        .menu-wrapper {
             overflow: hidden;
+        }
+
+        .me-auto {
+            text-align: left;
+        }
+
+        .fw-bold-center {
+            text-align: left;
+            word-break: break-all;
+        }
+
+        .del-btn {
+            position: absolute;
+            right: 4px;
+            bottom: 5px;
+            font-size: 10px;
+            color: #dc3545 !important;
         }
     </style>
 </head>
@@ -140,7 +162,8 @@
             remember: false,
             autoClose: true,
             pushBody: false,
-            width: "20%",
+            width: "30%",
+            duration: 200,
             icons: { left: 'bi bi-arrow-left-short', right: 'bi bi-arrow-right-short', down: 'bi bi-arrow-down-short' }
         });
 
@@ -172,19 +195,53 @@
                     }
                 })
         }
-        axios.get("/fileList").then(resp => {
-            var data = resp.data;
-            if (data.code === 0) {
-                var html = "";
-                for (var i in data.data) {
-                    var version = data.data[i]
-                    for (var j in version) {
-                        html += `<li class="list-group-item" onclick="openFile('${version[j]['OriginName']}')" onclick>${i}#${version[j]['UpdateTime']}</li>`
+
+        function refreshFileList() {
+            axios.get("/fileList").then(resp => {
+                var data = resp.data;
+                if (data.code === 0) {
+                    var html = "";
+                    for (var i in data.data) {
+                        var version = data.data[i]
+                        for (var j in version) {
+                            // html += `<li class="list-group-item" onclick="openFile('${version[j]['OriginName']}')" onclick>${i}#${version[j]['UpdateTime']}</li>`
+                            // <span class="badge bg-secondary">14</span>
+                            html += `<li class="list-group-item d-flex justify-content-between align-items-start" data-filename="${version[j]['OriginName']}" onclick="openFile('${version[j]['OriginName']}')"><div class="ms-12 me-auto"><div class="fw-bold fw-bold-center">${i}</div>${version[j]['UpdateTime']}</div><a class="del-btn" onclick="delFile(this,event)">删除</a></li>`
+                        }
                     }
+                    $('#fileList').html(html);
                 }
-                $('#fileList').html(html);
+            })
+        }
+        refreshFileList();
+
+        var currentDelFilename = "";
+
+        function delFile(f, e) {
+            console.log($(f).parent().data("filename"))
+            if (currentDelFilename !== $(f).parent().data("filename")) {
+                $(".del-btn").each(function (i, b) {
+                    console.log(b);
+                    $(b).text("删除");
+                })
+                currentDelFilename = $(f).parent().data("filename");
+                $(f).text("确认删除");
+            } else {
+                console.log("Del ", $(f).parent().data("filename"))
+                axios.post("/del",{
+                        "file": currentDelFilename,
+                    })
+                    .then(resp => {
+                        var j = resp.data;
+                        console.log(j)
+                        if (j['code'] === 0) {
+                            refreshFileList();
+                        }
+                    })
             }
-        })
+            e.preventDefault();
+            e.stopPropagation();
+        }
     </script>
 
 </body>
