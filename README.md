@@ -35,7 +35,7 @@ docker run --name=onlyoffice-simple-client \
 
 ## Authentication
 
-It's recommended to use `Authelia` to protect this service. just follow the [Documention](https://www.authelia.com/integration/proxies/nginx/), and add follow lines to your nginx conf file
+It's recommended to use `Authelia` to protect this service. just follow the [Documention](https://www.authelia.com/integration/proxies/nginx/), and add following lines to your nginx conf file
 ```
 location /files {
          proxy_pass $upstream;
